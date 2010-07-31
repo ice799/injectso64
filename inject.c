@@ -49,63 +49,11 @@
 #include <assert.h>
 #include <sys/ptrace.h>
 #include <asm/ptrace.h>
-//#include <linux/user.h>
+#include <sys/user.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <signal.h>
 #include <dlfcn.h>
-
-/* from linux/user.h which disappeared recently: */
-struct my_user_regs {
-	unsigned long r15;
-	unsigned long r14;
-	unsigned long r13;
-	unsigned long r12;
-	unsigned long rbp;
-	unsigned long rbx;
-/* arguments: non interrupts/non tracing syscalls only save upto here*/
-	unsigned long r11;
-	unsigned long r10;
-	unsigned long r9;
-	unsigned long r8;
-	unsigned long rax;
-	unsigned long rcx;
-	unsigned long rdx;
-	unsigned long rsi;
-	unsigned long rdi;
-	unsigned long orig_rax;
-/* end of arguments */
-/* cpu exception frame or undefined */
-	unsigned long rip;
-	unsigned long cs;
-	unsigned long eflags;
-	unsigned long rsp;
-	unsigned long ss;
-	unsigned long fs_base;
-	unsigned long gs_base;
-	unsigned long ds;
-	unsigned long es;
-	unsigned long fs;
-	unsigned long gs;
-};
-
-
-/* do_dlopen (not used anymore) */
-struct do_dlopen_args
-{
-	/* Argument to do_dlopen.  */
-	char *name;
-	/* Opening mode.  */
-	int mode;
-
-	/* Return from do_dlopen.  */
-	void *map;
-};
-
-
-/* The glibc function we are going to call
- * __libc_dlopen_mode()
- */
 
 void die(const char *s)
 {
@@ -134,7 +82,7 @@ char *find_libc_start(pid_t pid)
 			continue;
 		if (!(p = strstr(buf, "/")))
 			continue;
-		if (!strstr(p, "/lib64") || !strstr(p, "/libc-"))
+		if (!strstr(p, "/libc-"))
 			continue;
 		start = strtok(buf, "-");
 		addr1 = (char *)strtoul(start, NULL, 16);
@@ -179,7 +127,7 @@ int peek_text(pid_t pid, size_t addr, char *buf, size_t blen)
 int inject_code(pid_t pid, size_t libc_addr, size_t dlopen_addr, char *dso)
 {
 	char sbuf1[1024], sbuf2[1024];
-	struct my_user_regs regs, saved_regs;
+	struct user_regs_struct regs, saved_regs;
 	int status;
 
 	if (ptrace(PTRACE_ATTACH, pid, NULL, NULL) < 0)
@@ -288,4 +236,3 @@ int main(int argc, char **argv)
 	printf("done!\n");
 	return 0;
 }
-
