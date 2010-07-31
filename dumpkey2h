@@ -1,0 +1,58 @@
+#!/usr/bin/perl -w
+
+
+open(I, "dumpkeys|") or die $!;
+open(O, ">keytab.h") or die $!;
+
+print O<<EOF;
+#ifndef __keytab_h__
+#define __keytab_h__
+
+char *keytable[512] = {
+EOF
+
+my %keytab = ();
+my %name2char = (
+	"one" 		=> "1",
+	"two" 		=> "2",
+	"three" 	=> "3",
+	"four"		=> "4",
+	"five"		=> "5",
+	"six"		=> "6",
+	"seven"		=> "7",
+	"eight"		=> "8",
+	"nine"		=> "9",
+	"zero"		=> "0",
+
+	"minus"		=> "-",
+	"plus"		=> "+",
+	"period"	=> ".",
+	"space"		=> " ",
+);
+    
+while(<I>) {
+	if (/keycode\s+(\d+)\s+=\s+(\S+)\s+/) {
+		if (!defined $keytab{$1}) {
+			$keytab{$1} = $2;
+		}
+	}
+}
+close(I);
+
+my $s = "";
+foreach (keys %keytab) {
+	if (length($keytab{$_}) > 1) {
+		if (defined $name2char{$keytab{$_}}) {
+			$s = $name2char{$keytab{$_}};
+		} else {
+			$s = "<".$keytab{$_}.">";
+		}
+	} else {
+		$s = $keytab{$_};
+	}
+	print O "\t[$_] = \"".$s."\",\n";
+}
+
+print O "};\n#endif\n";
+close(O);
+
